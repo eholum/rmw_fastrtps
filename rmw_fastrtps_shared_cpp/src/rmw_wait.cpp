@@ -216,8 +216,11 @@ __rmw_wait(
     for (size_t i = 0; i < guard_conditions->guard_condition_count; ++i) {
       void * data = guard_conditions->guard_conditions[i];
       auto condition = static_cast<eprosima::fastdds::dds::GuardCondition *>(data);
-      fastdds_wait_set->detach_condition(*condition);
-      if (!condition->get_trigger_value()) {
+      auto ret = fastdds_wait_set->detach_condition(*condition);
+      // If the condition failed to detach then we cannot read trigger values from it.
+      // So reset the guard condition and move on.
+      // TODO() Of course, this does not address the root cause so eventually something else will break!
+      if (ReturnCode_t::RETCODE_OK == ret && !condition->get_trigger_value()) {
         guard_conditions->guard_conditions[i] = 0;
       }
       condition->set_trigger_value(false);
